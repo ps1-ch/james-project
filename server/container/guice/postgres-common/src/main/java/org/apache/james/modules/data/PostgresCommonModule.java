@@ -18,6 +18,12 @@
  ****************************************************************/
 package org.apache.james.modules.data;
 
+import static io.r2dbc.spi.ConnectionFactoryOptions.DATABASE;
+import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
+import static io.r2dbc.spi.ConnectionFactoryOptions.HOST;
+import static io.r2dbc.spi.ConnectionFactoryOptions.PASSWORD;
+import static io.r2dbc.spi.ConnectionFactoryOptions.PORT;
+import static io.r2dbc.spi.ConnectionFactoryOptions.USER;
 import static org.apache.james.backends.postgres.PostgresTableManager.INITIALIZATION_PRIORITY;
 import static org.apache.james.backends.postgres.utils.PostgresExecutor.DEFAULT_INJECT;
 
@@ -52,7 +58,10 @@ import com.google.inject.name.Named;
 
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
+import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
+import io.r2dbc.spi.ConnectionFactoryOptions;
+import io.r2dbc.spi.Option;
 
 public class PostgresCommonModule extends AbstractModule {
     private static final Logger LOGGER = LoggerFactory.getLogger("POSTGRES");
@@ -102,14 +111,21 @@ public class PostgresCommonModule extends AbstractModule {
     @Provides
     @Singleton
     ConnectionFactory postgresqlConnectionFactory(PostgresConfiguration postgresConfiguration) {
-        return new PostgresqlConnectionFactory(PostgresqlConnectionConfiguration.builder()
-            .host(postgresConfiguration.getHost())
-            .port(postgresConfiguration.getPort())
-            .username(postgresConfiguration.getDefaultCredential().getUsername())
-            .password(postgresConfiguration.getDefaultCredential().getPassword())
-            .database(postgresConfiguration.getDatabaseName())
-            .schema(postgresConfiguration.getDatabaseSchema())
-            .sslMode(postgresConfiguration.getSslMode())
+        String url = postgresConfiguration.getUrl();
+
+        if (url != null && !url.isBlank()) {
+            return ConnectionFactories.get(postgresConfiguration.getUrl());
+        }
+
+        return ConnectionFactories.get(ConnectionFactoryOptions.builder()
+            .option(DRIVER, "postgresql")
+            .option(HOST, postgresConfiguration.getHost())
+            .option(PORT, postgresConfiguration.getPort())
+            .option(USER, postgresConfiguration.getDefaultCredential().getUsername())
+            .option(PASSWORD, postgresConfiguration.getDefaultCredential().getPassword())
+            .option(DATABASE, postgresConfiguration.getDatabaseName())
+            .option(Option.valueOf("schema"), postgresConfiguration.getDatabaseSchema())
+            .option(Option.valueOf("sslMode"), postgresConfiguration.getSslMode().name())
             .build());
     }
 

@@ -61,6 +61,7 @@ public class PostgresConfiguration {
     public static final Duration JOOQ_REACTIVE_TIMEOUT_DEFAULT_VALUE = Duration.ofSeconds(10);
     public static final String ATTACHMENT_STORAGE_ENABLED = "attachment.storage.enabled";
     public static final boolean ATTACHMENT_STORAGE_ENABLED_DEFAULT_VALUE = true;
+    public static final String URL = "database.url";
 
     public static class Credential {
         private final String username;
@@ -98,6 +99,7 @@ public class PostgresConfiguration {
         private Optional<String> sslMode = Optional.empty();
         private Optional<Duration> jooqReactiveTimeout = Optional.empty();
         private Optional<Boolean> attachmentStorageEnabled = Optional.empty();
+        private Optional<String> url = Optional.empty();
 
         public Builder databaseName(String databaseName) {
             this.databaseName = Optional.of(databaseName);
@@ -254,6 +256,16 @@ public class PostgresConfiguration {
             return this;
         }
 
+        public Builder url(String url) {
+            this.url = Optional.of(url);
+            return this;
+        }
+
+        public Builder url(Optional<String> url) {
+            this.url = url;
+            return this;
+        }
+
         public PostgresConfiguration build() {
             Preconditions.checkArgument(username.isPresent() && !username.get().isBlank(), "You need to specify username");
             Preconditions.checkArgument(password.isPresent() && !password.get().isBlank(), "You need to specify password");
@@ -276,7 +288,8 @@ public class PostgresConfiguration {
                     byPassRLSPoolMaxSize.orElse(BY_PASS_RLS_POOL_MAX_SIZE_DEFAULT_VALUE),
                     SSLMode.fromValue(sslMode.orElse(SSL_MODE_DEFAULT_VALUE)),
                     jooqReactiveTimeout.orElse(JOOQ_REACTIVE_TIMEOUT_DEFAULT_VALUE),
-                    attachmentStorageEnabled.orElse(ATTACHMENT_STORAGE_ENABLED_DEFAULT_VALUE));
+                    attachmentStorageEnabled.orElse(ATTACHMENT_STORAGE_ENABLED_DEFAULT_VALUE),
+                    url.orElse(null));
         }
     }
 
@@ -303,6 +316,7 @@ public class PostgresConfiguration {
                 .jooqReactiveTimeout(Optional.ofNullable(propertiesConfiguration.getString(JOOQ_REACTIVE_TIMEOUT))
                         .map(value -> DurationParser.parse(value, ChronoUnit.SECONDS)))
                 .attachmentStorageEnabled(propertiesConfiguration.getBoolean(ATTACHMENT_STORAGE_ENABLED, ATTACHMENT_STORAGE_ENABLED_DEFAULT_VALUE))
+                .url(Optional.ofNullable(propertiesConfiguration.getString(URL)))
                 .build();
     }
 
@@ -320,12 +334,13 @@ public class PostgresConfiguration {
     private final SSLMode sslMode;
     private final Duration jooqReactiveTimeout;
     private final boolean attachmentStorageEnabled;
+    private final String url;
 
     private PostgresConfiguration(String host, int port, String databaseName, String databaseSchema,
                                   Credential defaultCredential, Credential byPassRLSCredential, RowLevelSecurity rowLevelSecurity,
                                   Integer poolInitialSize, Integer poolMaxSize,
                                   Integer byPassRLSPoolInitialSize, Integer byPassRLSPoolMaxSize,
-                                  SSLMode sslMode, Duration jooqReactiveTimeout, boolean attachmentStorageEnabled) {
+                                  SSLMode sslMode, Duration jooqReactiveTimeout, boolean attachmentStorageEnabled, String url) {
         this.host = host;
         this.port = port;
         this.databaseName = databaseName;
@@ -340,6 +355,7 @@ public class PostgresConfiguration {
         this.sslMode = sslMode;
         this.jooqReactiveTimeout = jooqReactiveTimeout;
         this.attachmentStorageEnabled = attachmentStorageEnabled;
+        this.url = url;
     }
 
     public String getHost() {
@@ -398,9 +414,13 @@ public class PostgresConfiguration {
         return attachmentStorageEnabled;
     }
 
+    public String getUrl() {
+        return url;
+    }
+
     @Override
     public final int hashCode() {
-        return Objects.hash(host, port, databaseName, databaseSchema, defaultCredential, byPassRLSCredential, rowLevelSecurity, poolInitialSize, poolMaxSize, sslMode, jooqReactiveTimeout, attachmentStorageEnabled);
+        return Objects.hash(host, port, databaseName, databaseSchema, defaultCredential, byPassRLSCredential, rowLevelSecurity, poolInitialSize, poolMaxSize, sslMode, jooqReactiveTimeout, attachmentStorageEnabled, url);
     }
 
     @Override
@@ -419,7 +439,8 @@ public class PostgresConfiguration {
                    && Objects.equals(this.poolMaxSize, that.poolMaxSize)
                    && Objects.equals(this.sslMode, that.sslMode)
                    && Objects.equals(this.jooqReactiveTimeout, that.jooqReactiveTimeout)
-                   && Objects.equals(this.attachmentStorageEnabled, that.attachmentStorageEnabled);
+                   && Objects.equals(this.attachmentStorageEnabled, that.attachmentStorageEnabled)
+                   && Objects.equals(this.url, that.url);
         }
         return false;
     }
